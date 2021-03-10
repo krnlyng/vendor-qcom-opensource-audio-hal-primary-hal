@@ -1185,56 +1185,6 @@ exit:
     return ret;
 }
 
-static int cirrus_do_fw_mono_download(int do_reset) {
-    bool cal_valid = false, status_ok = false, checksum_ok = false;
-    int ret = 0;
-
-    ret = cirrus_exec_fw_download("Protection", 0, do_reset);
-    if (ret != 0) {
-        ALOGE("%s: Cannot send Protection firmware: bailing out.",
-              __func__);
-        return -EINVAL;
-    }
-
-    /* If the calibration is not valid, keep the fw loaded but get out. */
-    if (!handle.spkr.cal_ok)
-        return -EINVAL;
-
-    ret = cirrus_set_force_wake(true);
-    if (ret < 0)
-        goto exit;
-
-    ret = cirrus_set_mixer_array_by_name(CIRRUS_CTL_PROT_CAL_R,
-                                         &handle.spkr.cal_r, 4);
-    if (ret < 0) {
-        ALOGE("%s: Cannot set Z calibration", __func__);
-        goto exit;
-    }
-
-    ret = cirrus_set_mixer_array_by_name(CIRRUS_CTL_CALI_CAL_STATUS,
-                                         &handle.spkr.status, 4);
-    if (ret < 0) {
-        ALOGE("%s: Cannot set calibration status", __func__);
-        goto exit;
-    }
-
-    ret = cirrus_set_mixer_array_by_name(CIRRUS_CTL_CALI_CAL_CHECKSUM,
-                                         &handle.spkr.checksum, 4);
-    if (ret < 0) {
-        ALOGE("%s: Cannot set calibration checksum", __func__);
-        goto exit;
-    }
-
-    /* Time to get some rest: work is done! */
-    ret = cirrus_set_force_wake(false);
-    if (ret < 0)
-        goto exit;
-
-exit:
-    ret += cirrus_play_silence(0);
-    return ret;
-}
-
 static int cirrus_write_cal_checksum(struct cirrus_cal_result_t *cal, char *lr)
 {
     char *ctl_name;
@@ -1293,6 +1243,56 @@ static int cirrus_write_cal_status(struct cirrus_cal_result_t *cal, char *lr)
     ret = cirrus_set_mixer_array_by_name(ctl_name, cal->status, 4);
 exit:
     free(ctl_name);
+    return ret;
+}
+
+static int cirrus_do_fw_mono_download(int do_reset) {
+    bool cal_valid = false, status_ok = false, checksum_ok = false;
+    int ret = 0;
+
+    ret = cirrus_exec_fw_download("Protection", 0, do_reset);
+    if (ret != 0) {
+        ALOGE("%s: Cannot send Protection firmware: bailing out.",
+              __func__);
+        return -EINVAL;
+    }
+
+    /* If the calibration is not valid, keep the fw loaded but get out. */
+    if (!handle.spkr.cal_ok)
+        return -EINVAL;
+
+    ret = cirrus_set_force_wake(true);
+    if (ret < 0)
+        goto exit;
+
+    ret = cirrus_set_mixer_array_by_name(CIRRUS_CTL_PROT_CAL_R,
+                                         &handle.spkr.cal_r, 4);
+    if (ret < 0) {
+        ALOGE("%s: Cannot set Z calibration", __func__);
+        goto exit;
+    }
+
+    ret = cirrus_set_mixer_array_by_name(CIRRUS_CTL_CALI_CAL_STATUS,
+                                         &handle.spkr.status, 4);
+    if (ret < 0) {
+        ALOGE("%s: Cannot set calibration status", __func__);
+        goto exit;
+    }
+
+    ret = cirrus_set_mixer_array_by_name(CIRRUS_CTL_CALI_CAL_CHECKSUM,
+                                         &handle.spkr.checksum, 4);
+    if (ret < 0) {
+        ALOGE("%s: Cannot set calibration checksum", __func__);
+        goto exit;
+    }
+
+    /* Time to get some rest: work is done! */
+    ret = cirrus_set_force_wake(false);
+    if (ret < 0)
+        goto exit;
+
+exit:
+    ret += cirrus_play_silence(0);
     return ret;
 }
 
